@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e1726">
+<link rel="manifest" href="manifest.json">
+<title>건프라 로그 — 정균이의 컬렉션</title>
+<style>
+:root{
+  --ink:#0e1726; --ink2:#33415c; --mute:#7a869c;
+  --line:#d5dbe6; --line2:#e8ecf3;
+  --bg:#f6f8fc; --panel:#ffffff; --panel2:#fbfcfe;
+  --accent:#e5484d;      /* 반다이 레드 */
+  --accent-d:#c2363b;
+  --blue:#1c64f2;        /* 설계도 블루 */
+  --bluetint:#eaf1ff;
+  --ok:#12805c; --oktint:#e3f5ee;
+  --warn:#b5820a; --warntint:#fdf3d8;
+  --shadow:0 1px 2px rgba(14,23,38,.06),0 8px 24px rgba(14,23,38,.06);
+  --radius:14px;
+  --mono:'DIN Alternate','Roboto Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sans:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic','Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+body{padding-bottom:80px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px}
+a{color:var(--blue);text-decoration:none}
+
+/* ===== 설계도 그리드 배경 (signature) ===== */
+.blueprint-bg{position:fixed;inset:0;z-index:-1;opacity:.4;
+  background-image:linear-gradient(var(--line2) 1px,transparent 1px),linear-gradient(90deg,var(--line2) 1px,transparent 1px);
+  background-size:22px 22px}
+
+/* ===== 헤더 ===== */
+header{position:sticky;top:0;z-index:40;background:rgba(246,248,252,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.hwrap{max-width:1080px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.logo .mark{width:38px;height:38px;border-radius:9px;background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--mono);font-weight:800;font-size:19px;letter-spacing:-1px;box-shadow:var(--shadow)}
+.logo .mark span{color:var(--accent)}
+.logo .txt{min-width:0}
+.logo .txt b{display:block;font-size:16px;font-weight:800;letter-spacing:-.3px}
+.logo .txt small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:1px;text-transform:uppercase}
+.hbtn{padding:9px 15px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;box-shadow:var(--shadow);white-space:nowrap;transition:.15s}
+.hbtn:active{transform:scale(.96)}
+.hbtn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+
+/* ===== 탭바 ===== */
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:45;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tabbar button{flex:1;padding:8px 4px;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--mute);font-size:11px;font-weight:600;transition:.15s}
+.tabbar button svg{width:23px;height:23px}
+.tabbar button.on{color:var(--accent)}
+.tabbar button.on svg{transform:translateY(-1px)}
+
+/* ===== 레이아웃 ===== */
+main{max-width:1080px;margin:0 auto;padding:18px}
+.view{display:none;animation:fade .25s}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ===== 통계 스트립 ===== */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat .n{font-family:var(--mono);font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat .l{font-size:11.5px;color:var(--mute);font-weight:600;margin-top:5px}
+.stat::after{content:'';position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:var(--bluetint);opacity:.6}
+.stat.a::after{background:var(--accent);opacity:.09}
+.stat.b::after{background:var(--ok);opacity:.12}
+
+/* ===== 필터바 ===== */
+.filterbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;-webkit-overflow-scrolling:touch}
+.filterbar::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:7px 13px;border-radius:20px;background:var(--panel);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink2);transition:.15s}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+.searchrow{display:flex;gap:8px;margin-bottom:14px}
+.searchrow input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:var(--shadow)}
+.searchrow input:focus{outline:none;border-color:var(--blue)}
+
+/* ===== 카드 그리드 ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:.18s;cursor:pointer;display:flex;flex-direction:column}
+.card:active{transform:scale(.98)}
+.card .thumb{aspect-ratio:1/1;background:var(--panel2);position:relative;overflow:hidden;display:grid;place-items:center}
+.card .thumb img{width:100%;height:100%;object-fit:cover}
+.card .thumb .ph{color:var(--line);font-family:var(--mono);font-size:11px;text-align:center;padding:10px;letter-spacing:1px}
+.card .thumb .gbadge{position:absolute;top:7px;left:7px;font-family:var(--mono);font-weight:800;font-size:11px;padding:3px 7px;border-radius:6px;background:var(--ink);color:#fff;letter-spacing:.5px}
+.card .thumb .status{position:absolute;top:7px;right:7px;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px #fff}
+.st-done{background:var(--ok)} .st-building{background:var(--warn)} .st-backlog{background:var(--mute)} .st-wishlist{background:var(--blue)}
+.card .body{padding:10px 11px 12px}
+.card .body .mn{font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+.card .body .nm{font-size:13.5px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.card .body .meta{font-size:11px;color:var(--mute);margin-top:5px;display:flex;gap:6px;flex-wrap:wrap}
+.card .body .meta span{font-family:var(--mono)}
+
+/* 도서관 카드 변형 */
+.libcard .thumb .gbadge{background:var(--blue)}
+
+/* ===== 빈 상태 ===== */
+.empty{text-align:center;padding:60px 20px;color:var(--mute)}
+.empty svg{width:64px;height:64px;opacity:.3;margin-bottom:14px}
+.empty b{display:block;font-size:16px;color:var(--ink2);margin-bottom:6px}
+.empty p{font-size:13.5px}
+
+/* ===== 모달 / 시트 ===== */
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(14,23,38,.45);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center}
+.overlay.on{display:flex}
+@media(min-width:640px){.overlay{align-items:center;padding:20px}}
+.sheet{background:var(--panel);width:100%;max-width:560px;max-height:92vh;border-radius:20px 20px 0 0;overflow-y:auto;box-shadow:0 -10px 40px rgba(14,23,38,.2);animation:slideup .28s cubic-bezier(.2,.9,.3,1)}
+@media(min-width:640px){.sheet{border-radius:20px}}
+@keyframes slideup{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-head{position:sticky;top:0;background:var(--panel);z-index:2;padding:16px 18px 12px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:12px}
+.sheet-head .grip{position:absolute;top:7px;left:50%;transform:translateX(-50%);width:36px;height:4px;border-radius:2px;background:var(--line)}
+.sheet-head h3{flex:1;font-size:17px;font-weight:800;letter-spacing:-.3px}
+.sheet-head .x{width:32px;height:32px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:18px;color:var(--ink2)}
+.sheet-body{padding:18px}
+
+/* ===== 폼 ===== */
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.field label .req{color:var(--accent)}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+.field textarea{resize:vertical;min-height:70px}
+.field .hint{font-size:11.5px;color:var(--mute);margin-top:5px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* 색인 배지 (자동추론 결과) */
+.autobox{background:var(--bluetint);border:1px solid #cddffb;border-radius:11px;padding:12px 13px;margin-bottom:15px}
+.autobox .t{font-size:11.5px;font-weight:700;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.autobox .tags{display:flex;gap:6px;flex-wrap:wrap}
+.itag{font-family:var(--mono);font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;background:#fff;border:1px solid #cddffb;color:var(--ink2)}
+.itag b{color:var(--blue)}
+
+/* 상태 세그먼트 */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px}
+.seg button{padding:9px 4px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--mute);transition:.15s}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* 별점 */
+.stars{display:flex;gap:5px}
+.stars button{font-size:26px;color:var(--line);transition:.1s}
+.stars button.on{color:#f5a623}
+
+/* 사진 첨부 존 */
+.photozone{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;background:var(--panel2)}
+.photozone .kinds{display:flex;gap:7px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.kindbtn{font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink2)}
+.kindbtn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.photoacts{display:flex;gap:8px;justify-content:center}
+.photoacts button{font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;background:var(--panel);border:1px solid var(--line)}
+.urlrow{display:none;margin-top:12px;gap:7px}
+.urlrow.on{display:flex}
+.urlrow input{flex:1}
+.urlrow button{padding:0 14px;border-radius:9px;background:var(--blue);color:#fff;font-weight:700;font-size:13px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:12px}
+.thumbs .t{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:var(--panel2)}
+.thumbs .t img{width:100%;height:100%;object-fit:cover}
+.thumbs .t .k{position:absolute;bottom:0;left:0;right:0;font-size:9px;font-weight:700;text-align:center;background:rgba(14,23,38,.7);color:#fff;padding:2px}
+.thumbs .t .del{position:absolute;top:3px;right:3px;width:19px;height:19px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;display:grid;place-items:center;line-height:1}
+
+.savebtn{width:100%;padding:14px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:15px;box-shadow:var(--shadow);margin-top:6px}
+.savebtn:active{transform:scale(.98)}
+.savebtn.sec{background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:none;margin-top:10px}
+.searchrow2{display:flex;gap:10px;margin-top:10px}
+.searchrow2 .half{flex:1;margin-top:0}
+.delbtn{width:100%;padding:12px;border-radius:11px;color:var(--accent);font-weight:700;font-size:13.5px;margin-top:14px;border:1px solid transparent}
+
+/* ===== 상세 뷰 ===== */
+.detail-hero{position:relative;aspect-ratio:4/3;background:var(--panel2);border-radius:14px;overflow:hidden;margin-bottom:16px;border:1px solid var(--line)}
+.detail-hero img{width:100%;height:100%;object-fit:contain;background:#fff}
+.detail-hero .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-family:var(--mono)}
+.gallery{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
+.gallery::-webkit-scrollbar{height:4px}
+.gallery img{height:64px;width:64px;object-fit:cover;border-radius:9px;border:1px solid var(--line);cursor:pointer;flex-shrink:0}
+.gallery img.on{border-color:var(--blue);border-width:2px}
+.spec{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.spec .row{display:flex;padding:11px 15px;border-bottom:1px solid var(--line2);font-size:14px}
+.spec .row:last-child{border-bottom:none}
+.spec .row .k{width:96px;color:var(--mute);font-weight:600;font-size:12.5px;flex-shrink:0}
+.spec .row .v{flex:1;font-weight:600}
+.spec .row .v.mono{font-family:var(--mono)}
+
+.title-block{margin-bottom:16px}
+.title-block .mn{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.5px}
+.title-block h2{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;margin:3px 0 8px}
+.title-block .tags{display:flex;gap:6px;flex-wrap:wrap}
+
+.notebox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;font-size:14px;line-height:1.65;color:var(--ink2);white-space:pre-wrap;box-shadow:var(--shadow)}
+.notebox.empty-note{color:var(--mute);font-style:italic}
+
+/* 도서관 상세 서지 */
+.biblio{background:linear-gradient(135deg,#fff,#f9fbff);border:1px solid var(--line)}
+
+.backbtn{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:14px;padding:7px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+
+/* 섹션 헤더 */
+.shead{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 12px}
+.shead h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.shead h3 .c{font-family:var(--mono);color:var(--mute);font-size:14px;font-weight:600;margin-left:6px}
+.shead a{font-size:13px;font-weight:700}
+
+/* 통계 뷰 차트 */
+.chartcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.chartcard h4{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.chartcard h4 .dot{width:9px;height:9px;border-radius:3px;background:var(--accent)}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bar .lbl{width:88px;font-size:12.5px;font-weight:600;color:var(--ink2);flex-shrink:0;text-align:right;font-family:var(--mono)}
+.bar .track{flex:1;height:22px;background:var(--panel2);border-radius:6px;overflow:hidden;position:relative}
+.bar .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),#4d8bf5);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:700;min-width:22px;transition:width .5s}
+.bar .fill.red{background:linear-gradient(90deg,var(--accent),#f06a6e)}
+.bar .fill.grn{background:linear-gradient(90deg,var(--ok),#2aa579)}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 30px rgba(14,23,38,.3);opacity:0;pointer-events:none;transition:.3s;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.libpick{display:none}
+.libpick.on{display:block}
+.libresult{max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;margin-top:8px}
+.libresult .li{padding:11px 13px;border-bottom:1px solid var(--line2);cursor:pointer;display:flex;align-items:center;gap:10px}
+.libresult .li:active{background:var(--bluetint)}
+.libresult .li .g{font-family:var(--mono);font-size:10px;font-weight:800;padding:3px 6px;border-radius:5px;background:var(--ink);color:#fff}
+.libresult .li .info b{font-size:13.5px;font-weight:700;display:block}
+.libresult .li .info small{font-family:var(--mono);font-size:11px;color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="blueprint-bg"></div>
+
+<header>
+  <div class="hwrap">
+    <div class="logo">
+      <div class="mark">G<span>P</span></div>
+      <div class="txt">
+        <b>건프라 로그</b>
+        <small>JEONGGYUN'S COLLECTION</small>
+      </div>
+    </div>
+    <button class="hbtn" onclick="openAdd()">+ 기록</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== 컬렉션 뷰 ===== -->
+  <section class="view on" id="v-collection">
+    <div class="stats" id="statStrip"></div>
+    <div class="searchrow">
+      <input id="colSearch" placeholder="내 컬렉션 검색 (모델명·번호)" oninput="renderCollection()">
+    </div>
+    <div class="filterbar" id="colFilter"></div>
+    <div id="colGrid"></div>
+  </section>
+
+  <!-- ===== 도서관 뷰 ===== -->
+  <section class="view" id="v-library">
+    <div class="searchrow">
+      <input id="libSearch" placeholder="도서관 검색 (모델명·파일럿·작품)" oninput="renderLibrary()">
+    </div>
+    <div class="filterbar" id="libFilterGrade"></div>
+    <div class="filterbar" id="libFilterSeries"></div>
+    <div id="libGrid"></div>
+  </section>
+
+  <!-- ===== 통계 뷰 ===== -->
+  <section class="view" id="v-stats">
+    <div id="statsBody"></div>
+  </section>
+
+  <!-- ===== 상세 뷰 ===== -->
+  <section class="view" id="v-detail">
+    <button class="backbtn" onclick="goBack()">‹ 뒤로</button>
+    <div id="detailBody"></div>
+  </section>
+</main>
+
+<!-- ===== 탭바 ===== -->
+<nav class="tabbar" id="tabbar">
+  <button class="on" data-tab="collection" onclick="switchTab('collection')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    컬렉션
+  </button>
+  <button data-tab="library" onclick="switchTab('library')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2z"/><path d="M8 3v18"/></svg>
+    도서관
+  </button>
+  <button data-tab="stats" onclick="switchTab('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>
+    통계
+  </button>
+</nav>
+
+<!-- ===== 기록 추가/편집 시트 ===== -->
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="grip"></div>
+      <h3 id="editTitle">기록 추가</h3>
+      <button class="x" onclick="closeEdit()">×</button>
+    </div>
+    <div class="sheet-body" id="editBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* 데이터는 data/kits.json 에서 로드 */
+</script>
+<script>
+/* ============================================================
+   건프라 로그 — 앱 로직
+   레이어: DB(IndexedDB) / 색인엔진 / 렌더 / 이벤트
+   ID 네임스페이스: L_(library) C_(collection) M_(media)
+============================================================ */
+
+/* ---------- 색인 엔진 (분류 자동추론) ---------- */
+const GRADE_DEFS = {
+  HG:{label:'HG', full:'High Grade'}, RG:{label:'RG', full:'Real Grade'},
+  MG:{label:'MG', full:'Master Grade'}, PG:{label:'PG', full:'Perfect Grade'},
+  EG:{label:'EG', full:'Entry Grade'}, SD:{label:'SD', full:'Super Deformed'},
+  FM:{label:'FM', full:'Full Mechanics'}, RE100:{label:'RE/100', full:'Reborn-One Hundred'},
+  MGEX:{label:'MGEX', full:'Master Grade Extreme'}, MGSD:{label:'MGSD', full:'MG SD'},
+  PB:{label:'P-Bandai', full:'Premium Bandai'}, FIRST:{label:'-',full:'-'},
+  OTHER:{label:'기타', full:'Other'}
+};
+const SERIES_DEFS = {
+  FIRST:'퍼스트 건담', UC:'우주세기(UC)', ZETA:'제타건담', ZZ:'더블제타',
+  UNICORN:'유니콘', F91:'F91', VICTORY:'V건담', G:'G건담', WING:'윙건담',
+  X:'건담X', TURN_A:'턴에이', SEED:'SEED', '00':'더블오', IBO:'철혈의 오펀스',
+  WITCH:'수성의 마녀', THUNDERBOLT:'썬더볼트', ORIGIN:'디 오리진', BUILD:'빌드 시리즈',
+  OTHER:'기타'
+};
+
+// 등급 자동추론: 모델명/번호 텍스트에서 등급 키워드 추출
+function inferGrade(text){
+  const t=(text||'').toUpperCase();
+  if(/\bMGEX\b/.test(t))return'MGEX';
+  if(/\bMGSD\b/.test(t))return'MGSD';
+  if(/\bRE\/?100\b/.test(t))return'RE100';
+  if(/\bPG\b|PERFECT GRADE/.test(t))return'PG';
+  if(/\bMG\b|MASTER GRADE/.test(t))return'MG';
+  if(/\bRG\b|REAL GRADE/.test(t))return'RG';
+  if(/\bHG(UC|CE|BF|AGE|IBO)?\b|HIGH GRADE/.test(t))return'HG';
+  if(/\bEG\b|ENTRY GRADE/.test(t))return'EG';
+  if(/\bSD\b|SUPER DEFORMED|BB전사/.test(t))return'SD';
+  if(/\bFM\b|FULL MECHANICS/.test(t))return'FM';
+  return null;
+}
+// 스케일 자동추론
+function inferScale(grade){
+  if(grade==='MG'||grade==='RE100'||grade==='MGEX'||grade==='FM')return'1/100';
+  if(grade==='PG')return'1/60';
+  if(grade==='HG'||grade==='RG'||grade==='EG')return'1/144';
+  if(grade==='SD'||grade==='MGSD')return'NON';
+  return'';
+}
+// 모델번호 정규화(기체형식번호 추출 시도)
+function extractModelNumber(name){
+  const m=(name||'').match(/\b([A-Z]{1,5}-?[A-Z]?\d{1,4}[A-Z0-9\-\/]*)\b/);
+  return m?m[1]:'';
+}
+
+/* ---------- IndexedDB 래퍼 ---------- */
+const DB={
+  _db:null, name:'gunpla_log', ver:1,
+  open(){return new Promise((res,rej)=>{
+    const r=indexedDB.open(this.name,this.ver);
+    r.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('library'))db.createObjectStore('library',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('collection'))db.createObjectStore('collection',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('media'))db.createObjectStore('media',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('meta'))db.createObjectStore('meta',{keyPath:'k'});
+    };
+    r.onsuccess=e=>{this._db=e.target.result;res()};
+    r.onerror=e=>rej(e.target.error);
+  })},
+  _tx(store,mode){return this._db.transaction(store,mode).objectStore(store)},
+  getAll(store){return new Promise((res,rej)=>{const r=this._tx(store,'readonly').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})},
+  get(store,id){return new Promise((res,rej)=>{const r=this._tx(store,'readonly').get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})},
+  put(store,obj){return new Promise((res,rej)=>{const r=this._tx(store,'readwrite').put(obj);r.onsuccess=()=>res(obj);r.onerror=()=>rej(r.error)})},
+  del(store,id){return new Promise((res,rej)=>{const r=this._tx(store,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+};
+
+const uid=p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const now=()=>new Date().toISOString();
+
+/* ---------- 상태 ---------- */
+let LIB=[], COL=[], MEDIA={}; // MEDIA: id->record cache
+let libFilterG='ALL', libFilterS='ALL', colFilter='ALL';
+let currentDetail=null, backTo='collection';
+let editState=null;
+
+/* ---------- 시드 주입 (최초 1회) ---------- */
+async function refreshCatalog(){
+  toast('데이터베이스 확인 중...');
+  await DB.del('meta','catalogVersion'); // 버전 플래그 삭제 → 강제 재확인
+  await ensureSeed();
+  await loadAll();
+  const cm=window.__catalogMeta;
+  toast(cm?('최신 상태 · '+LIB.length+'종'):'오프라인 · 갱신 불가');
+  renderStats();
+}
+async function loadKitsData(){
+  // data/kits.json + meta.json 을 fetch. 오프라인/실패 시 기존 IndexedDB 유지.
+  try{
+    const [kitsRes,metaRes]=await Promise.all([
+      fetch('data/kits.json',{cache:'no-cache'}),
+      fetch('data/meta.json',{cache:'no-cache'})
+    ]);
+    if(!kitsRes.ok||!metaRes.ok)throw new Error('data fetch failed');
+    const kits=await kitsRes.json();
+    const meta=await metaRes.json();
+    return {kits,meta};
+  }catch(e){
+    console.warn('kits.json 로드 실패(오프라인일 수 있음). 기존 DB 사용:',e.message);
+    return null;
+  }
+}
+async function ensureSeed(){
+  // 버전 비교: meta.version 이 바뀌면 도서관 시드만 재주입 (사용자 데이터 보존)
+  const flag=await DB.get('meta','catalogVersion');
+  const data=await loadKitsData();
+  if(!data){
+    // 오프라인: 기존 IndexedDB 그대로 사용
+    return;
+  }
+  const newVer=data.meta.version+'|'+data.meta.count;
+  if(flag && flag.v===newVer){
+    return; // 이미 최신
+  }
+  // 기존 시드 항목만 제거(사용자 추가/컬렉션 보존)
+  const existing=await DB.getAll('library');
+  for(const l of existing){ if(l.isSeed){ await DB.del('library',l.id); } }
+  // 신규 카탈로그 주입. kits.json의 id를 그대로 도서관 id로 사용(안정적 참조)
+  for(const s of data.kits){
+    const rec={
+      id:'L_'+s.id, modelName:s.modelName, modelNumber:s.modelNumber,
+      grade:s.grade, series:s.series, scale:s.scale, releaseYear:s.releaseYear,
+      pilot:s.pilot||'', faction:s.faction||'', appearedIn:s.appearedIn||'',
+      boxImage:s.boxImage||'', price:s.price||null,
+      bandaiUrl:'', notes:'', isSeed:true, source:s.source||'',
+      createdAt:now(), updatedAt:now()
+    };
+    await DB.put('library',rec);
+  }
+  await DB.put('meta',{k:'catalogVersion',v:newVer,count:data.meta.count,at:now()});
+  window.__catalogMeta=data.meta;
+}async function loadAll(){
+  LIB=await DB.getAll('library');
+  COL=await DB.getAll('collection');
+  const m=await DB.getAll('media');
+  MEDIA={}; m.forEach(x=>MEDIA[x.id]=x);
+  LIB.sort((a,b)=>(b.releaseYear||0)-(a.releaseYear||0));
+  COL.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+}
+
+/* ---------- 유틸 ---------- */
+function libById(id){return LIB.find(l=>l.id===id)}
+function mediaFor(item){return (item.mediaIds||[]).map(id=>MEDIA[id]).filter(Boolean)}
+function firstPhoto(item){
+  const ms=mediaFor(item);
+  const box=ms.find(m=>m.kind==='box')||ms.find(m=>m.kind==='finished')||ms[0];
+  return box?box.dataUrl:null;
+}
+function statusLabel(s){return{wishlist:'위시리스트',backlog:'대기',building:'조립중',done:'완성'}[s]||s}
+function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------- 설계도 카드 자동생성 (저작권 free, 절차적 SVG) ---------- */
+const SERIES_HUE={
+  FIRST:'#e5484d',UC:'#5b6bff',ZETA:'#8b5cf6',ZZ:'#8b5cf6',UNICORN:'#e11d8f',
+  F91:'#0ea5b7',VICTORY:'#12805c',G:'#f59e0b',WING:'#0369a1',X:'#7c3aed',
+  TURN_A:'#64748b',SEED:'#2563eb','00':'#0891b2',IBO:'#b45309',WITCH:'#db2777',
+  THUNDERBOLT:'#dc2626',ORIGIN:'#78716c',BUILD:'#16a34a',OTHER:'#475569'
+};
+function hashSeed(str){let h=2166136261;for(let i=0;i<(str||'').length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function lcg(seed){let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904286)>>>0;return s/4294967296}}
+function blueprintCard(item){
+  const lib = item.grade ? item : (libById(item.libraryId)||{});
+  const hue = SERIES_HUE[lib.series]||'#475569';
+  const gd = GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:(lib.grade||'');
+  const mn = lib.modelNumber||'';
+  const rnd = lcg(hashSeed((lib.modelName||'')+(lib.grade||'')+(lib.scale||'')));
+  const W=400,H=400;
+  let shapes='';
+  const cx=W/2, gridN=5, cell=42, ox=cx-(gridN*cell)/2, oy=120;
+  for(let r=0;r<7;r++){
+    for(let c=0;c<gridN;c++){
+      if(rnd()>0.52){
+        const w=cell-6, h=cell-6, x=ox+c*cell+3, y=oy+r*cell+3;
+        const op=(0.12+rnd()*0.5).toFixed(2);
+        shapes+='<rect x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'" width="'+w+'" height="'+h+'" rx="3" fill="'+hue+'" opacity="'+op+'"/>';
+        const xm=ox+(gridN-1-c)*cell+3;
+        if(c!==gridN-1-c)shapes+='<rect x="'+xm.toFixed(0)+'" y="'+y.toFixed(0)+'" width="'+w+'" height="'+h+'" rx="3" fill="'+hue+'" opacity="'+op+'"/>';
+      }
+    }
+  }
+  const dims='<line x1="40" y1="110" x2="40" y2="410" stroke="'+hue+'" stroke-width="1" opacity="0.3"/><line x1="36" y1="110" x2="44" y2="110" stroke="'+hue+'" stroke-width="1" opacity="0.3"/><line x1="36" y1="410" x2="44" y2="410" stroke="'+hue+'" stroke-width="1" opacity="0.3"/>';
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'
+    +'<defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e8ecf3" stroke-width="1"/></pattern></defs>'
+    +'<rect width="'+W+'" height="'+H+'" fill="#fbfcfe"/><rect width="'+W+'" height="'+H+'" fill="url(#g)"/>'
+    +dims+shapes
+    +'<rect x="0" y="0" width="'+W+'" height="40" fill="'+hue+'" opacity="0.9"/>'
+    +'<text x="16" y="26" font-family="ui-monospace,monospace" font-size="17" font-weight="700" fill="#fff">'+esc(mn||lib.modelName||'GUNPLA')+'</text>'
+    +(gd?'<rect x="'+(W-70)+'" y="8" width="58" height="24" rx="5" fill="#0e1726"/><text x="'+(W-41)+'" y="25" font-family="ui-monospace,monospace" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">'+esc(gd)+'</text>':'')
+    +'<rect x="0" y="'+(H-34)+'" width="'+W+'" height="34" fill="#0e1726" opacity="0.92"/>'
+    +'<text x="16" y="'+(H-13)+'" font-family="ui-monospace,monospace" font-size="12" fill="#9aa7bd">'+esc((SERIES_DEFS[lib.series]||'')+' · '+(lib.scale||''))+'</text>'
+    +'<text x="'+(W-16)+'" y="'+(H-13)+'" font-family="ui-monospace,monospace" font-size="11" fill="#5b6980" text-anchor="end">BLUEPRINT · NO PHOTO</text>'
+    +'</svg>';
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function boxImageOf(item){
+  if(item.boxImage)return item.boxImage;
+  if(item.libraryId){const l=libById(item.libraryId);if(l&&l.boxImage)return l.boxImage;}
+  return '';
+}
+function thumbSrc(item){return firstPhoto(item)||boxImageOf(item)||blueprintCard(item)}
+
+// 외부 이미지 로드 실패 시 설계도 카드로 대체 (data-bp 속성에 폴백 SVG 보관)
+function imgFallback(imgEl){
+  if(imgEl.dataset.fbDone)return;
+  imgEl.dataset.fbDone='1';
+  if(imgEl.dataset.bp)imgEl.src=imgEl.dataset.bp;
+}
+
+// 검색 대상 lib 해석 (컬렉션이면 연결된 도서관 항목)
+function resolveLib(id,type){
+  if(type==='L')return libById(id);
+  const c=COL.find(x=>x.id===id);return c?(libById(c.libraryId)||{modelName:c.nickname}):null;
+}
+// HobbyLink Japan 검색 — 일본 상용 DB, 매뉴얼·박스아트 커버리지 압도적
+function imageSearch(id,type){
+  const lib=resolveLib(id,type);
+  if(!lib){toast('항목을 찾을 수 없어요');return}
+  const gd=GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:'';
+  // HLJ는 영문/기체번호 매칭이 좋음. 모델명에 한글이 있으면 기체번호로 대체
+  const hasKorean=/[가-힣]/.test(lib.modelName||'');
+  const nameForSearch=hasKorean?(lib.modelNumber||lib.modelName):lib.modelName;
+  const q=[gd,nameForSearch].filter(Boolean).join(' ');
+  const url='https://www.hlj.com/search/go?q='+encodeURIComponent(q);
+  window.open(url,'_blank','noopener');
+  toast('HLJ에서 검색결과가 열려요. 상품 이미지 주소를 복사해 URL 첨부하세요');
+}
+// 구글 이미지 일본어 검색 (보조)
+function imageSearchGoogleJP(id,type){
+  const lib=resolveLib(id,type);
+  if(!lib){toast('항목을 찾을 수 없어요');return}
+  const gd=GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:'';
+  const q=[gd,lib.modelNumber,lib.modelName,'ガンプラ パッケージ'].filter(Boolean).join(' ');
+  const url='https://www.google.co.jp/search?tbm=isch&hl=ja&q='+encodeURIComponent(q);
+  window.open(url,'_blank','noopener');
+  toast('구글(일본)에서 검색결과가 열려요');
+}
+// 원클릭 박스아트 저장 — 이미 URL 보유한 항목(288종)을 복붙 없이 미디어로 편입
+async function saveBoxImage(libId){
+  const lib=libById(libId);
+  if(!lib||!lib.boxImage){toast('저장할 박스아트가 없어요');return}
+  // 이미 같은 URL이 미디어로 있으면 중복 방지
+  const existing=(lib.mediaIds||[]).map(mid=>MEDIA[mid]).filter(Boolean);
+  if(existing.some(m=>m.dataUrl===lib.boxImage)){toast('이미 저장돼 있어요');return}
+  const m={id:uid('M'),ownerId:lib.id,kind:'box',dataUrl:lib.boxImage,isExternal:true,caption:'',createdAt:now()};
+  await DB.put('media',m);MEDIA[m.id]=m;
+  const rec={...lib,mediaIds:[...(lib.mediaIds||[]),m.id],updatedAt:now()};
+  await DB.put('library',rec);
+  await loadAll();
+  toast('박스아트가 도서관에 저장됐어요');
+  const fresh=libById(libId);if(fresh){currentDetail={type:'L',rec:fresh};renderLibraryDetail(fresh)}
+}
+
+/* ---------- 탭 전환 ---------- */
+function switchTab(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('on'));
+  document.getElementById('v-'+tab).classList.add('on');
+  const btn=document.querySelector('.tabbar button[data-tab="'+tab+'"]');
+  if(btn)btn.classList.add('on');
+  window.scrollTo(0,0);
+  if(tab==='collection')renderCollection();
+  if(tab==='library')renderLibrary();
+  if(tab==='stats')renderStats();
+}
+function showDetailView(){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.getElementById('v-detail').classList.add('on');
+  window.scrollTo(0,0);
+}
+function goBack(){switchTab(backTo)}
+
+/* ---------- 컬렉션 렌더 ---------- */
+function renderStatStrip(){
+  const total=COL.length;
+  const done=COL.filter(c=>c.status==='done').length;
+  const building=COL.filter(c=>c.status==='building').length;
+  const backlog=COL.filter(c=>c.status==='backlog'||c.status==='wishlist').length;
+  document.getElementById('statStrip').innerHTML=
+    stat(total,'전체','')+stat(done,'완성','b')+stat(building,'조립중','a')+stat(backlog,'대기','');
+}
+function stat(n,l,cls){return '<div class="stat '+cls+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'}
+
+function renderCollection(){
+  renderStatStrip();
+  const q=(document.getElementById('colSearch').value||'').toLowerCase();
+  // 필터칩
+  const fb=document.getElementById('colFilter');
+  const filters=[['ALL','전체'],['done','완성'],['building','조립중'],['backlog','대기'],['wishlist','위시']];
+  fb.innerHTML=filters.map(([k,v])=>'<button class="chip'+(colFilter===k?' on':'')+'" onclick="setColFilter(\''+k+'\')">'+v+'</button>').join('');
+
+  let items=COL.slice();
+  if(colFilter!=='ALL')items=items.filter(c=>c.status===colFilter);
+  if(q)items=items.filter(c=>{
+    const lib=libById(c.libraryId)||{};
+    return (lib.modelName||'').toLowerCase().includes(q)||(lib.modelNumber||'').toLowerCase().includes(q)||(c.nickname||'').toLowerCase().includes(q);
+  });
+
+  const g=document.getElementById('colGrid');
+  if(!items.length){
+    g.innerHTML=emptyState('아직 기록이 없어요','우측 상단 <b>+기록</b> 버튼으로 정균이가 만든 건프라를 추가해봐요');
+    g.className=''; return;
+  }
+  g.className='grid';
+  g.innerHTML=items.map(c=>{
+    const lib=libById(c.libraryId)||{modelName:c.nickname||'커스텀',modelNumber:'',grade:'OTHER'};
+    const ph=thumbSrc(c);
+    const gd=GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:lib.grade;
+    return '<div class="card" onclick="openDetail(\'C\',\''+c.id+'\')">'
+      +'<div class="thumb">'
+        +'<img src="'+ph+'" loading="lazy" data-bp="'+blueprintCard(c)+'" onerror="imgFallback(this)">'
+        +'<div class="gbadge">'+esc(gd)+'</div>'
+        +'<div class="status st-'+c.status+'"></div>'
+      +'</div>'
+      +'<div class="body">'
+        +'<div class="mn">'+esc(lib.modelNumber||'—')+'</div>'
+        +'<div class="nm">'+esc(c.nickname||lib.modelName)+'</div>'
+        +'<div class="meta"><span>'+esc(statusLabel(c.status))+'</span>'+(c.buildEndDate?'<span>· '+c.buildEndDate+'</span>':'')+'</div>'
+      +'</div></div>';
+  }).join('');
+}
+function setColFilter(k){colFilter=k;renderCollection()}
+
+/* ---------- 도서관 렌더 ---------- */
+function renderLibrary(){
+  const q=(document.getElementById('libSearch').value||'').toLowerCase();
+  // 등급 필터
+  const grades=['ALL',...new Set(LIB.map(l=>l.grade))];
+  document.getElementById('libFilterGrade').innerHTML=grades.map(g=>{
+    const lbl=g==='ALL'?'전체 등급':(GRADE_DEFS[g]?GRADE_DEFS[g].label:g);
+    return '<button class="chip'+(libFilterG===g?' on':'')+'" onclick="setLibG(\''+g+'\')">'+esc(lbl)+'</button>';
+  }).join('');
+  // 시리즈 필터
+  const seriesSet=['ALL',...new Set(LIB.map(l=>l.series))];
+  document.getElementById('libFilterSeries').innerHTML=seriesSet.map(s=>{
+    const lbl=s==='ALL'?'전체 시리즈':(SERIES_DEFS[s]||s);
+    return '<button class="chip'+(libFilterS===s?' on':'')+'" onclick="setLibS(\''+s+'\')">'+esc(lbl)+'</button>';
+  }).join('');
+
+  let items=LIB.slice();
+  if(libFilterG!=='ALL')items=items.filter(l=>l.grade===libFilterG);
+  if(libFilterS!=='ALL')items=items.filter(l=>l.series===libFilterS);
+  if(q)items=items.filter(l=>
+    (l.modelName||'').toLowerCase().includes(q)||(l.modelNumber||'').toLowerCase().includes(q)||
+    (l.pilot||'').toLowerCase().includes(q)||(l.appearedIn||'').toLowerCase().includes(q));
+
+  const g=document.getElementById('libGrid');
+  if(!items.length){g.innerHTML=emptyState('검색 결과 없음','다른 키워드로 찾아보세요');g.className='';return}
+  g.className='grid';
+  g.innerHTML=items.map(l=>{
+    const ph=thumbSrc(l);
+    const gd=GRADE_DEFS[l.grade]?GRADE_DEFS[l.grade].label:l.grade;
+    const owned=COL.some(c=>c.libraryId===l.id);
+    return '<div class="card libcard" onclick="openDetail(\'L\',\''+l.id+'\')">'
+      +'<div class="thumb">'
+        +'<img src="'+ph+'" loading="lazy" data-bp="'+blueprintCard(l)+'" onerror="imgFallback(this)">'
+        +'<div class="gbadge">'+esc(gd)+'</div>'
+        +(owned?'<div class="status st-done" title="보유중"></div>':'')
+      +'</div>'
+      +'<div class="body">'
+        +'<div class="mn">'+esc(l.modelNumber||'—')+'</div>'
+        +'<div class="nm">'+esc(l.modelName)+'</div>'
+        +'<div class="meta"><span>'+esc(l.scale)+'</span><span>· '+(l.releaseYear||'')+'</span></div>'
+      +'</div></div>';
+  }).join('');
+}
+function setLibG(g){libFilterG=g;renderLibrary()}
+function setLibS(s){libFilterS=s;renderLibrary()}
+
+function emptyState(title,desc){
+  return '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><b>'+title+'</b><p>'+desc+'</p></div>';
+}
+
+/* ---------- 상세 ---------- */
+function openDetail(type,id){
+  backTo=document.querySelector('.tabbar button.on').dataset.tab;
+  if(type==='C'){
+    const c=COL.find(x=>x.id===id); if(!c)return;
+    currentDetail={type:'C',rec:c};
+    renderCollectionDetail(c);
+  }else{
+    const l=libById(id); if(!l)return;
+    currentDetail={type:'L',rec:l};
+    renderLibraryDetail(l);
+  }
+  showDetailView();
+}
+
+function galleryHtml(ms,item){
+  if(!ms.length){
+    const bx=item?boxImageOf(item):'';
+    const src=bx||blueprintCard(item||{});
+    return '<div class="detail-hero"><img src="'+src+'" data-bp="'+blueprintCard(item||{})+'" onerror="imgFallback(this)" style="object-fit:'+(bx?'contain':'cover')+'"></div>';
+  }
+  const main=ms[0];
+  let h='<div class="detail-hero"><img id="heroImg" src="'+main.dataUrl+'"></div>';
+  if(ms.length>1){
+    h+='<div class="gallery">'+ms.map((m,i)=>'<img src="'+m.dataUrl+'" class="'+(i===0?'on':'')+'" onclick="swapHero(this,\''+m.id+'\')" title="'+esc(m.kind)+'">').join('')+'</div>';
+  }
+  return h;
+}
+function swapHero(el,mid){
+  const m=MEDIA[mid]; if(!m)return;
+  document.getElementById('heroImg').src=m.dataUrl;
+  el.parentElement.querySelectorAll('img').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function tagChips(lib){
+  const gd=GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:lib.grade;
+  return '<span class="itag"><b>'+esc(gd)+'</b></span>'
+    +'<span class="itag">'+esc(SERIES_DEFS[lib.series]||lib.series)+'</span>'
+    +(lib.scale?'<span class="itag">'+esc(lib.scale)+'</span>':'')
+    +(lib.releaseYear?'<span class="itag">'+lib.releaseYear+'</span>':'');
+}
+
+function renderCollectionDetail(c){
+  const lib=libById(c.libraryId)||{};
+  const ms=mediaFor(c);
+  let h=galleryHtml(ms,c);
+  h+='<div class="title-block"><div class="mn">'+esc(lib.modelNumber||'—')+'</div>'
+    +'<h2>'+esc(c.nickname||lib.modelName||'커스텀 킷')+'</h2>'
+    +'<div class="tags">'+(lib.grade?tagChips(lib):'<span class="itag">커스텀</span>')+'</div></div>';
+  // 스펙
+  h+='<div class="spec">';
+  h+=specRow('상태',statusLabel(c.status));
+  if(c.rating)h+=specRow('평점','★'.repeat(c.rating)+'☆'.repeat(5-c.rating));
+  if(c.purchaseDate)h+=specRow('구매일',c.purchaseDate,true);
+  if(c.buildStartDate)h+=specRow('조립 시작',c.buildStartDate,true);
+  if(c.buildEndDate)h+=specRow('완성일',c.buildEndDate,true);
+  if(c.buildHours)h+=specRow('소요시간',c.buildHours+'시간',true);
+  if(c.price)h+=specRow('구매가',Number(c.price).toLocaleString()+'원',true);
+  h+='</div>';
+  // 조립 노트
+  h+='<div class="shead"><h3>조립 기록</h3></div>';
+  h+='<div class="notebox'+(c.buildNotes?'':' empty-note')+'">'+(c.buildNotes?esc(c.buildNotes):'아직 기록이 없어요')+'</div>';
+  // 도서관 정보 링크
+  if(lib.id){
+    h+='<div class="shead"><h3>도서관 정보</h3><a onclick="openDetail(\'L\',\''+lib.id+'\')">전체 보기 ›</a></div>';
+    h+='<div class="spec biblio">';
+    if(lib.pilot)h+=specRow('파일럿',lib.pilot);
+    if(lib.appearedIn)h+=specRow('등장작',lib.appearedIn);
+    if(lib.faction)h+=specRow('소속',lib.faction);
+    h+='</div>';
+  }
+  h+='<div class="searchrow2">';
+  h+='<button class="savebtn sec half" onclick="imageSearch(\''+c.id+'\',\'C\')">🔍 HLJ 검색</button>';
+  h+='<button class="savebtn sec half" onclick="imageSearchGoogleJP(\''+c.id+'\',\'C\')">🇯🇵 구글JP</button>';
+  h+='</div>';
+  h+='<button class="savebtn sec" onclick="openEdit(\''+c.id+'\')">✎ 기록 수정</button>';
+  document.getElementById('detailBody').innerHTML=h;
+}
+
+function renderLibraryDetail(l){
+  const ms=mediaFor(l);
+  let h=galleryHtml(ms,l);
+  h+='<div class="title-block"><div class="mn">'+esc(l.modelNumber||'—')+'</div>'
+    +'<h2>'+esc(l.modelName)+'</h2>'
+    +'<div class="tags">'+tagChips(l)+'</div></div>';
+  // 서지 정보 (도서관 핵심)
+  h+='<div class="shead"><h3>기체 정보</h3></div>';
+  h+='<div class="spec biblio">';
+  h+=specRow('기체번호',l.modelNumber||'—',true);
+  h+=specRow('등급',(GRADE_DEFS[l.grade]?GRADE_DEFS[l.grade].label+' · '+GRADE_DEFS[l.grade].full:l.grade));
+  h+=specRow('시리즈',SERIES_DEFS[l.series]||l.series);
+  h+=specRow('스케일',l.scale||'—',true);
+  if(l.releaseYear)h+=specRow('발매',l.releaseYear+'년',true);
+  h+='</div>';
+  h+='<div class="shead"><h3>작품 정보</h3></div>';
+  h+='<div class="spec biblio">';
+  h+=specRow('파일럿',l.pilot||'—');
+  h+=specRow('소속',l.faction||'—');
+  h+=specRow('등장작',l.appearedIn||'—');
+  h+='</div>';
+  if(l.notes){h+='<div class="shead"><h3>메모</h3></div><div class="notebox">'+esc(l.notes)+'</div>';}
+  // 이 도서관 항목을 보유중인 컬렉션
+  const owned=COL.filter(c=>c.libraryId===l.id);
+  if(owned.length){
+    h+='<div class="shead"><h3>내 컬렉션<span class="c">'+owned.length+'</span></h3></div>';
+    h+='<div class="grid">'+owned.map(c=>{
+      const ph=thumbSrc(c);
+      return '<div class="card" onclick="openDetail(\'C\',\''+c.id+'\')"><div class="thumb">'
+        +'<img src="'+ph+'" data-bp="'+blueprintCard(c)+'" onerror="imgFallback(this)">'
+        +'<div class="status st-'+c.status+'"></div></div>'
+        +'<div class="body"><div class="nm">'+esc(c.nickname||l.modelName)+'</div>'
+        +'<div class="meta"><span>'+statusLabel(c.status)+'</span></div></div></div>';
+    }).join('')+'</div>';
+  }
+  if(l.boxImage){h+='<button class="savebtn" onclick="saveBoxImage(\''+l.id+'\')">⬇ 박스아트 저장 (원클릭)</button>';}
+  h+='<button class="savebtn'+(l.boxImage?' sec':'')+'" onclick="openAddFromLib(\''+l.id+'\')">+ 이 킷을 내 컬렉션에 추가</button>';
+  h+='<div class="searchrow2">';
+  h+='<button class="savebtn sec half" onclick="imageSearch(\''+l.id+'\',\'L\')">🔍 HLJ 검색</button>';
+  h+='<button class="savebtn sec half" onclick="imageSearchGoogleJP(\''+l.id+'\',\'L\')">🇯🇵 구글JP</button>';
+  h+='</div>';
+  h+='<button class="savebtn sec" onclick="openLibEdit(\''+l.id+'\')">'+(l.isSeed?'📷 박스아트·사진 직접 첨부':'✎ 도서관 항목 수정')+'</button>';
+  document.getElementById('detailBody').innerHTML=h;
+}
+
+function specRow(k,v,mono){return '<div class="row"><div class="k">'+k+'</div><div class="v'+(mono?' mono':'')+'">'+esc(String(v))+'</div></div>'}
+
+/* ---------- 토스트 ---------- */
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('on'),2200);
+}
+
+
+/* ============================================================
+   편집 폼 — 기록 추가/수정, 도서관 등록, 사진 첨부
+============================================================ */
+
+// editState 구조: {mode:'col'|'lib', id, libraryId, mediaIds:[], newMedia:[], pickedLib}
+let photoKind='finished';
+
+function openAdd(){
+  editState={mode:'col',id:null,libraryId:null,mediaIds:[],pendingMedia:[],status:'backlog',rating:0};
+  document.getElementById('editTitle').textContent='기록 추가';
+  renderEditForm();
+  openOverlay();
+}
+function openAddFromLib(libId){
+  editState={mode:'col',id:null,libraryId:libId,mediaIds:[],pendingMedia:[],status:'backlog',rating:0};
+  document.getElementById('editTitle').textContent='컬렉션에 추가';
+  renderEditForm();
+  openOverlay();
+}
+function openEdit(colId){
+  const c=COL.find(x=>x.id===colId); if(!c)return;
+  editState={mode:'col',id:c.id,libraryId:c.libraryId,mediaIds:(c.mediaIds||[]).slice(),pendingMedia:[],
+    status:c.status,rating:c.rating||0,
+    nickname:c.nickname,purchaseDate:c.purchaseDate,buildStartDate:c.buildStartDate,
+    buildEndDate:c.buildEndDate,buildHours:c.buildHours,price:c.price,buildNotes:c.buildNotes};
+  document.getElementById('editTitle').textContent='기록 수정';
+  renderEditForm();
+  openOverlay();
+}
+function openLibEdit(libId){
+  const l=libById(libId); if(!l)return;
+  photoKind='box';
+  editState={mode:'lib',id:l.id,mediaIds:(l.mediaIds||[]).slice(),pendingMedia:[],...l};
+  document.getElementById('editTitle').textContent='도서관 항목 수정';
+  renderLibForm();
+  openOverlay();
+}
+
+function openOverlay(){document.getElementById('editOverlay').classList.add('on');document.body.style.overflow='hidden'}
+function closeEdit(){document.getElementById('editOverlay').classList.remove('on');document.body.style.overflow='';editState=null}
+
+/* ---------- 컬렉션 기록 폼 ---------- */
+function renderEditForm(){
+  const es=editState;
+  const lib=es.libraryId?libById(es.libraryId):null;
+  let h='';
+
+  // 1) 모델 선택 (도서관 연결)
+  h+='<div class="field"><label>모델 <span class="req">*</span></label>';
+  if(lib){
+    h+='<div class="libresult"><div class="li" onclick="clearLibPick()">'
+      +'<span class="g">'+(GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:lib.grade)+'</span>'
+      +'<div class="info"><b>'+esc(lib.modelName)+'</b><small>'+esc(lib.modelNumber)+' · '+esc(SERIES_DEFS[lib.series]||lib.series)+'</small></div>'
+      +'<span style="margin-left:auto;color:var(--accent);font-size:12px;font-weight:700">변경</span></div></div>';
+  }else{
+    h+='<input id="libSearchInput" placeholder="모델명·번호 입력 (예: RX-78-2, 프리덤)" oninput="searchLibForPick(this.value)" autocomplete="off">';
+    h+='<div class="libresult libpick" id="libPickResult"></div>';
+    h+='<div class="hint">도서관에서 못 찾으면 아래 <b>새 모델 등록</b>으로 직접 추가할 수 있어요</div>';
+    h+='<button class="kindbtn" style="margin-top:8px" onclick="showNewLibInline()">+ 새 모델 등록</button>';
+    h+='<div id="newLibInline"></div>';
+  }
+  h+='</div>';
+
+  // 2) 상태 세그먼트
+  h+='<div class="field"><label>상태</label><div class="seg" id="statusSeg">'
+    +['wishlist','backlog','building','done'].map(s=>'<button class="'+(es.status===s?'on':'')+'" onclick="setStatus(\''+s+'\')">'+statusLabel(s)+'</button>').join('')
+    +'</div></div>';
+
+  // 3) 날짜들
+  h+='<div class="frow">'
+    +'<div class="field"><label>구매일</label><input type="date" id="f_purchaseDate" value="'+(es.purchaseDate||'')+'"></div>'
+    +'<div class="field"><label>완성일</label><input type="date" id="f_buildEndDate" value="'+(es.buildEndDate||'')+'"></div>'
+    +'</div>';
+  h+='<div class="frow">'
+    +'<div class="field"><label>조립 시작</label><input type="date" id="f_buildStartDate" value="'+(es.buildStartDate||'')+'"></div>'
+    +'<div class="field"><label>소요시간(h)</label><input type="number" id="f_buildHours" value="'+(es.buildHours||'')+'" placeholder="예:4"></div>'
+    +'</div>';
+
+  // 4) 별명/가격
+  h+='<div class="frow">'
+    +'<div class="field"><label>별명</label><input id="f_nickname" value="'+esc(es.nickname||'')+'" placeholder="선택"></div>'
+    +'<div class="field"><label>구매가(원)</label><input type="number" id="f_price" value="'+(es.price||'')+'" placeholder="선택"></div>'
+    +'</div>';
+
+  // 5) 별점
+  h+='<div class="field"><label>평점</label><div class="stars" id="starRow">'
+    +[1,2,3,4,5].map(n=>'<button class="'+(es.rating>=n?'on':'')+'" onclick="setRating('+n+')">★</button>').join('')
+    +'</div></div>';
+
+  // 6) 조립 노트
+  h+='<div class="field"><label>조립 기록</label><textarea id="f_buildNotes" placeholder="난이도, 데칼 작업, 먹선, 조립 팁 등 자유롭게">'+esc(es.buildNotes||'')+'</textarea></div>';
+
+  // 7) 사진 첨부
+  h+=photoZoneHtml();
+
+  h+='<button class="savebtn" onclick="saveCollection()">저장</button>';
+  if(es.id)h+='<button class="delbtn" onclick="deleteCollection(\''+es.id+'\')">이 기록 삭제</button>';
+
+  document.getElementById('editBody').innerHTML=h;
+  renderPendingThumbs();
+}
+
+/* ---------- 사진 존 ---------- */
+function photoZoneHtml(){
+  return '<div class="field"><label>사진</label>'
+    +'<div class="photozone">'
+      +'<div class="kinds" id="kindRow">'
+        +[['box','박스아트'],['manual','매뉴얼'],['finished','완성샷'],['wip','작업중']].map(([k,v])=>
+          '<button class="kindbtn'+(photoKind===k?' on':'')+'" onclick="setPhotoKind(\''+k+'\')">'+v+'</button>').join('')
+      +'</div>'
+      +'<div class="photoacts">'
+        +'<button onclick="document.getElementById(\'fileInput\').click()">📁 파일 선택</button>'
+        +'<button onclick="toggleUrlRow()">🔗 URL 붙여넣기</button>'
+      +'</div>'
+      +'<div class="urlrow" id="urlRow"><input id="urlInput" placeholder="이미지 URL (https://...)"><button onclick="addUrlPhoto()">추가</button></div>'
+      +'<input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">'
+    +'</div>'
+    +'<div class="thumbs" id="pendingThumbs"></div>'
+    +'<div class="hint">완성샷·박스아트·매뉴얼·작업중 사진을 종류별로 붙일 수 있어요. URL은 인터넷 이미지 주소를 그대로 붙여넣으면 돼요.</div></div>';
+}
+function setPhotoKind(k){photoKind=k;document.querySelectorAll('#kindRow .kindbtn').forEach(b=>b.classList.remove('on'));event.target.classList.add('on')}
+function toggleUrlRow(){document.getElementById('urlRow').classList.toggle('on')}
+
+async function handleFiles(files){
+  for(const f of files){
+    const dataUrl=await resizeImage(f);
+    editState.pendingMedia.push({id:uid('M'),kind:photoKind,dataUrl,isExternal:false,caption:'',createdAt:now()});
+  }
+  renderPendingThumbs();
+  toast(files.length+'장 추가됨');
+}
+function addUrlPhoto(){
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url)return;
+  editState.pendingMedia.push({id:uid('M'),kind:photoKind,dataUrl:url,isExternal:true,caption:'',createdAt:now()});
+  document.getElementById('urlInput').value='';
+  renderPendingThumbs();
+  toast('URL 사진 추가됨');
+}
+function renderPendingThumbs(){
+  const el=document.getElementById('pendingThumbs');
+  if(!el)return;
+  const existing=(editState.mediaIds||[]).map(id=>MEDIA[id]).filter(Boolean);
+  const all=[...existing,...editState.pendingMedia];
+  el.innerHTML=all.map(m=>'<div class="t"><img src="'+m.dataUrl+'">'
+    +'<div class="k">'+({box:'박스',manual:'매뉴얼',finished:'완성',wip:'작업'}[m.kind]||m.kind)+'</div>'
+    +'<button class="del" onclick="removePhoto(\''+m.id+'\')">×</button></div>').join('');
+}
+function removePhoto(mid){
+  editState.mediaIds=(editState.mediaIds||[]).filter(id=>id!==mid);
+  editState.pendingMedia=editState.pendingMedia.filter(m=>m.id!==mid);
+  editState._removedMedia=editState._removedMedia||[];
+  if(MEDIA[mid])editState._removedMedia.push(mid);
+  renderPendingThumbs();
+}
+
+// 이미지 리사이즈 (저장 용량 관리 — 세차앱 패턴)
+function resizeImage(file,max=1400,q=0.82){
+  return new Promise(res=>{
+    const img=new Image();const rd=new FileReader();
+    rd.onload=()=>{img.onload=()=>{
+      let{width:w,height:h}=img;
+      if(w>max||h>max){if(w>h){h=h*max/w;w=max}else{w=w*max/h;h=max}}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      res(cv.toDataURL('image/jpeg',q));
+    };img.src=rd.result};
+    rd.readAsDataURL(file);
+  });
+}
+
+/* ---------- 상태/별점/도서관 선택 ---------- */
+function setStatus(s){editState.status=s;document.querySelectorAll('#statusSeg button').forEach(b=>b.classList.remove('on'));event.target.classList.add('on')}
+function setRating(n){editState.rating=(editState.rating===n?0:n);document.querySelectorAll('#starRow button').forEach((b,i)=>b.classList.toggle('on',i<editState.rating))}
+
+function searchLibForPick(q){
+  const box=document.getElementById('libPickResult');
+  q=(q||'').toLowerCase().trim();
+  if(!q){box.classList.remove('on');box.innerHTML='';return}
+  const hits=LIB.filter(l=>(l.modelName||'').toLowerCase().includes(q)||(l.modelNumber||'').toLowerCase().includes(q)||(l.pilot||'').toLowerCase().includes(q)).slice(0,12);
+  box.classList.add('on');
+  if(!hits.length){box.innerHTML='<div class="li" style="color:var(--mute);cursor:default">일치하는 모델 없음 — 아래 새 모델 등록 이용</div>';return}
+  box.innerHTML=hits.map(l=>'<div class="li" onclick="pickLib(\''+l.id+'\')">'
+    +'<span class="g">'+(GRADE_DEFS[l.grade]?GRADE_DEFS[l.grade].label:l.grade)+'</span>'
+    +'<div class="info"><b>'+esc(l.modelName)+'</b><small>'+esc(l.modelNumber)+' · '+esc(SERIES_DEFS[l.series]||l.series)+' · '+esc(l.scale)+'</small></div></div>').join('');
+}
+function pickLib(id){editState.libraryId=id;renderEditForm()}
+function clearLibPick(){editState.libraryId=null;renderEditForm()}
+
+/* ---------- 인라인 새 모델 등록 (색인 자동추론) ---------- */
+function showNewLibInline(){
+  const el=document.getElementById('newLibInline');
+  el.innerHTML='<div class="autobox" style="margin-top:12px">'
+    +'<div class="t">🔍 새 모델 등록 — 모델명 입력하면 등급·스케일 자동 분류</div>'
+    +'<input id="nl_name" placeholder="모델명 (예: RG 프리덤 건담)" oninput="autoIndex()" style="width:100%;padding:10px;border:1px solid #cddffb;border-radius:8px;margin-bottom:8px">'
+    +'<div class="tags" id="autoTags"><span class="itag">입력 대기</span></div>'
+    +'<div class="frow3" style="margin-top:10px">'
+      +'<select id="nl_grade" style="padding:8px;border:1px solid #cddffb;border-radius:8px">'+Object.keys(GRADE_DEFS).filter(k=>k!=='FIRST').map(k=>'<option value="'+k+'">'+GRADE_DEFS[k].label+'</option>').join('')+'</select>'
+      +'<select id="nl_series" style="padding:8px;border:1px solid #cddffb;border-radius:8px">'+Object.keys(SERIES_DEFS).map(k=>'<option value="'+k+'">'+SERIES_DEFS[k]+'</option>').join('')+'</select>'
+      +'<input id="nl_scale" placeholder="1/144" style="padding:8px;border:1px solid #cddffb;border-radius:8px">'
+    +'</div>'
+    +'<div class="frow" style="margin-top:8px">'
+      +'<input id="nl_pilot" placeholder="파일럿(선택)" style="padding:8px;border:1px solid #cddffb;border-radius:8px">'
+      +'<input id="nl_year" type="number" placeholder="발매연도(선택)" style="padding:8px;border:1px solid #cddffb;border-radius:8px">'
+    +'</div>'
+    +'<button class="kindbtn" style="margin-top:10px;background:var(--blue);color:#fff;border-color:var(--blue)" onclick="commitNewLib()">이 모델 등록하고 선택</button>'
+    +'</div>';
+}
+function autoIndex(){
+  const name=document.getElementById('nl_name').value;
+  const g=inferGrade(name);
+  const mn=extractModelNumber(name);
+  const tags=document.getElementById('autoTags');
+  let chips=[];
+  if(g){chips.push('<span class="itag">등급 <b>'+GRADE_DEFS[g].label+'</b></span>');document.getElementById('nl_grade').value=g;
+    const sc=inferScale(g);if(sc){document.getElementById('nl_scale').value=sc;chips.push('<span class="itag">스케일 <b>'+sc+'</b></span>')}}
+  if(mn)chips.push('<span class="itag">번호 <b>'+esc(mn)+'</b></span>');
+  tags.innerHTML=chips.length?chips.join(''):'<span class="itag">자동 분류 대기 — 등급 키워드(HG/RG/MG…)를 포함해보세요</span>';
+}
+async function commitNewLib(){
+  const name=document.getElementById('nl_name').value.trim();
+  if(!name){toast('모델명을 입력해주세요');return}
+  const rec={id:uid('L'),modelName:name,modelNumber:extractModelNumber(name)||document.getElementById('nl_name').value.match(/[A-Z]+-?[A-Z0-9]+/)?.[0]||'',
+    grade:document.getElementById('nl_grade').value,series:document.getElementById('nl_series').value,
+    scale:document.getElementById('nl_scale').value||inferScale(document.getElementById('nl_grade').value),
+    releaseYear:parseInt(document.getElementById('nl_year').value)||null,
+    pilot:document.getElementById('nl_pilot').value,faction:'',appearedIn:'',bandaiUrl:'',notes:'',
+    isSeed:false,createdAt:now(),updatedAt:now()};
+  await DB.put('library',rec);
+  LIB.push(rec);
+  editState.libraryId=rec.id;
+  toast('도서관에 등록됨');
+  renderEditForm();
+}
+
+/* ---------- 저장 ---------- */
+async function saveCollection(){
+  const es=editState;
+  if(!es.libraryId){toast('먼저 모델을 선택하거나 등록해주세요');return}
+  // 신규 미디어 저장
+  for(const m of es.pendingMedia){await DB.put('media',m);MEDIA[m.id]=m}
+  // 삭제된 미디어 제거
+  for(const mid of (es._removedMedia||[])){await DB.del('media',mid);delete MEDIA[mid]}
+  const mediaIds=[...(es.mediaIds||[]).filter(id=>MEDIA[id]),...es.pendingMedia.map(m=>m.id)];
+  const rec={
+    id:es.id||uid('C'),libraryId:es.libraryId,
+    nickname:val('f_nickname'),status:es.status,rating:es.rating||0,
+    purchaseDate:val('f_purchaseDate'),buildStartDate:val('f_buildStartDate'),
+    buildEndDate:val('f_buildEndDate'),buildHours:val('f_buildHours'),price:val('f_price'),
+    buildNotes:val('f_buildNotes'),mediaIds,tags:[],
+    createdAt:es.id?(COL.find(c=>c.id===es.id)?.createdAt||now()):now(),updatedAt:now()
+  };
+  await DB.put('collection',rec);
+  await loadAll();
+  closeEdit();
+  toast(es.id?'수정 완료':'기록 추가됨');
+  if(currentDetail&&currentDetail.type==='C'&&currentDetail.rec.id===rec.id){
+    const fresh=COL.find(c=>c.id===rec.id);currentDetail.rec=fresh;renderCollectionDetail(fresh);
+  }else{switchTab('collection')}
+}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():''}
+
+async function deleteCollection(id){
+  if(!confirm('이 기록을 삭제할까요? (사진도 함께 삭제됩니다)'))return;
+  const c=COL.find(x=>x.id===id);
+  if(c)for(const mid of (c.mediaIds||[])){await DB.del('media',mid);delete MEDIA[mid]}
+  await DB.del('collection',id);
+  await loadAll();
+  closeEdit();
+  toast('삭제됨');
+  switchTab('collection');
+}
+
+/* ---------- 도서관 항목 편집 폼 ---------- */
+function renderLibForm(){
+  const es=editState;
+  let h='';
+  h+='<div class="field"><label>모델명 <span class="req">*</span></label><input id="lf_name" value="'+esc(es.modelName||'')+'"></div>';
+  h+='<div class="frow"><div class="field"><label>기체번호</label><input id="lf_number" value="'+esc(es.modelNumber||'')+'"></div>'
+    +'<div class="field"><label>스케일</label><input id="lf_scale" value="'+esc(es.scale||'')+'"></div></div>';
+  h+='<div class="frow"><div class="field"><label>등급</label><select id="lf_grade">'+Object.keys(GRADE_DEFS).filter(k=>k!=='FIRST').map(k=>'<option value="'+k+'"'+(es.grade===k?' selected':'')+'>'+GRADE_DEFS[k].label+'</option>').join('')+'</select></div>'
+    +'<div class="field"><label>시리즈</label><select id="lf_series">'+Object.keys(SERIES_DEFS).map(k=>'<option value="'+k+'"'+(es.series===k?' selected':'')+'>'+SERIES_DEFS[k]+'</option>').join('')+'</select></div></div>';
+  h+='<div class="frow"><div class="field"><label>파일럿</label><input id="lf_pilot" value="'+esc(es.pilot||'')+'"></div>'
+    +'<div class="field"><label>발매연도</label><input type="number" id="lf_year" value="'+(es.releaseYear||'')+'"></div></div>';
+  h+='<div class="field"><label>소속</label><input id="lf_faction" value="'+esc(es.faction||'')+'"></div>';
+  h+='<div class="field"><label>등장작</label><input id="lf_appeared" value="'+esc(es.appearedIn||'')+'"></div>';
+  h+='<div class="field"><label>메모</label><textarea id="lf_notes">'+esc(es.notes||'')+'</textarea></div>';
+  h+=photoZoneHtml();
+  h+='<button class="savebtn" onclick="saveLib()">저장</button>';
+  document.getElementById('editBody').innerHTML=h;
+  renderPendingThumbs();
+}
+async function saveLib(){
+  const es=editState;
+  // 신규 미디어 저장
+  for(const m of (es.pendingMedia||[])){await DB.put('media',m);MEDIA[m.id]=m}
+  for(const mid of (es._removedMedia||[])){await DB.del('media',mid);delete MEDIA[mid]}
+  const mediaIds=[...(es.mediaIds||[]).filter(id=>MEDIA[id]),...(es.pendingMedia||[]).map(m=>m.id)];
+  const rec={...es,modelName:val('lf_name'),modelNumber:val('lf_number'),scale:val('lf_scale'),
+    grade:document.getElementById('lf_grade').value,series:document.getElementById('lf_series').value,
+    pilot:val('lf_pilot'),releaseYear:parseInt(val('lf_year'))||null,faction:val('lf_faction'),
+    appearedIn:val('lf_appeared'),notes:val('lf_notes'),mediaIds,updatedAt:now()};
+  delete rec.pendingMedia;delete rec._removedMedia;delete rec.mode;
+  await DB.put('library',rec);
+  await loadAll();
+  closeEdit();
+  toast('저장됨');
+  const fresh=libById(rec.id);if(fresh){currentDetail={type:'L',rec:fresh};renderLibraryDetail(fresh)}
+}
+/* ============================================================
+   통계 뷰 (ID 기반 집계)
+============================================================ */
+function dbInfoCard(){
+  let s='';
+  const cm=window.__catalogMeta;
+  s+='<div class="chartcard"><h4><span class="dot"></span>데이터베이스</h4>';
+  s+='<div class="spec" style="box-shadow:none;margin-bottom:12px">';
+  s+='<div class="row"><div class="k">수록</div><div class="v mono">'+LIB.length+'종</div></div>';
+  if(cm){s+='<div class="row"><div class="k">버전</div><div class="v mono">'+esc(cm.version)+'</div></div>';
+    s+='<div class="row"><div class="k">출처</div><div class="v">'+esc((cm.sources||[]).join(', '))+'</div></div>';}
+  s+='</div>';
+  s+='<button class="savebtn sec" style="margin-top:0" onclick="refreshCatalog()">↻ 데이터베이스 새로고침</button>';
+  s+='<div class="hint" style="margin-top:8px;font-size:12px;color:var(--mute)">새 kits.json 이 있으면 도서관을 갱신합니다. 컬렉션 기록은 유지돼요.</div>';
+  s+='</div>';
+  return s;
+}
+function renderStats(){
+  const body=document.getElementById('statsBody');
+  if(!COL.length){body.innerHTML=emptyState('통계 준비중','기록을 추가하면 등급·시리즈별 통계가 나타나요')+dbInfoCard();return}
+
+  // 집계 헬퍼
+  const byGrade={},bySeries={},byStatus={};
+  let totalSpent=0,totalHours=0,doneCount=0;
+  COL.forEach(c=>{
+    const lib=libById(c.libraryId)||{};
+    const g=lib.grade||'OTHER',s=lib.series||'OTHER';
+    byGrade[g]=(byGrade[g]||0)+1;
+    bySeries[s]=(bySeries[s]||0)+1;
+    byStatus[c.status]=(byStatus[c.status]||0)+1;
+    if(c.price)totalSpent+=Number(c.price);
+    if(c.buildHours)totalHours+=Number(c.buildHours);
+    if(c.status==='done')doneCount++;
+  });
+
+  let h='';
+  // 요약 카드
+  h+='<div class="stats" style="margin-bottom:18px">'
+    +stat(COL.length,'전체','')
+    +stat(doneCount,'완성','b')
+    +stat(totalHours?totalHours+'h':'—','조립시간','a')
+    +stat(totalSpent?Math.round(totalSpent/10000)+'만':'—','투자','')
+    +'</div>';
+
+  h+=barChart('등급별 보유','red',byGrade,k=>GRADE_DEFS[k]?GRADE_DEFS[k].label:k);
+  h+=barChart('시리즈별 보유','',bySeries,k=>SERIES_DEFS[k]||k);
+  h+=barChart('상태 분포','grn',byStatus,k=>statusLabel(k));
+
+  // 도서관 커버리지
+  const ownedLibIds=new Set(COL.map(c=>c.libraryId));
+  const coverage=Math.round(ownedLibIds.size/LIB.length*100);
+  h+='<div class="chartcard"><h4><span class="dot"></span>도서관 수집률</h4>'
+    +'<div class="bar"><div class="lbl">'+ownedLibIds.size+'/'+LIB.length+'</div>'
+    +'<div class="track"><div class="fill grn" style="width:'+Math.max(coverage,4)+'%">'+coverage+'%</div></div></div>'
+    +'<div class="hint" style="margin-top:6px;font-size:12px;color:var(--mute)">도서관 '+LIB.length+'개 모델 중 '+ownedLibIds.size+'개 보유</div></div>';
+
+  h+=dbInfoCard();
+
+  body.innerHTML=h;
+}
+function barChart(title,cls,data,labelFn){
+  const entries=Object.entries(data).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length)return'';
+  const max=Math.max(...entries.map(e=>e[1]));
+  let h='<div class="chartcard"><h4><span class="dot"></span>'+title+'</h4>';
+  h+=entries.map(([k,v])=>{
+    const pct=Math.max(v/max*100,8);
+    return '<div class="bar"><div class="lbl">'+esc(labelFn(k))+'</div>'
+      +'<div class="track"><div class="fill '+cls+'" style="width:'+pct+'%">'+v+'</div></div></div>';
+  }).join('');
+  h+='</div>';return h;
+}
+
+/* ============================================================
+   초기화
+============================================================ */
+async function init(){
+  try{
+    await DB.open();
+    await ensureSeed();
+    await loadAll();
+    renderCollection();
+  }catch(e){
+    console.error(e);
+    document.getElementById('colGrid').innerHTML='<div class="empty"><b>저장소 초기화 실패</b><p>'+esc(e.message||String(e))+'</p></div>';
+  }
+}
+init();
+
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW 등록 실패',e));
+  });
+}
+</script>
+</body>
+</html>

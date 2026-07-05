@@ -1,0 +1,60 @@
+{
+  "version": "2026-07-05",
+  "count": 959,
+  "sources": [
+    "gunpladb",
+    "korean-curated"
+  ],
+  "grades": {
+    "HG": 492,
+    "PG": 85,
+    "RG": 126,
+    "SD": 33,
+    "EG": 10,
+    "MG": 191,
+    "RE100": 10,
+    "FM": 12
+  },
+  "seriesCount": 19,
+  "withImage": 288,
+  "withPilot": 49,
+  "schema": {
+    "grades": [
+      "HG",
+      "RG",
+      "MG",
+      "PG",
+      "EG",
+      "SD",
+      "FM",
+      "RE100",
+      "MGEX",
+      "MGSD",
+      "PB",
+      "OTHER"
+    ],
+    "series": {
+      "FIRST": "퍼스트 건담",
+      "UC": "우주세기(UC)",
+      "ZETA": "제타건담",
+      "ZZ": "더블제타",
+      "UNICORN": "유니콘",
+      "F91": "F91",
+      "VICTORY": "V건담",
+      "G": "G건담",
+      "WING": "윙건담",
+      "X": "건담X",
+      "TURN_A": "턴에이",
+      "SEED": "SEED",
+      "00": "더블오",
+      "IBO": "철혈의 오펀스",
+      "WITCH": "수성의 마녀",
+      "THUNDERBOLT": "썬더볼트",
+      "ORIGIN": "디 오리진",
+      "BUILD": "빌드 시리즈",
+      "AGE": "건담 AGE",
+      "OTHER": "기타"
+    }
+  },
+  "builtAt": "2026-07-05T14:34:50.336Z"
+}
