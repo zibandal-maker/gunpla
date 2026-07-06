@@ -97,6 +97,7 @@ main{max-width:1080px;margin:0 auto;padding:18px}
 
 /* 도서관 카드 변형 */
 .libcard .thumb .gbadge{background:var(--blue)}
+.card .thumb .srcbadge{position:absolute;bottom:6px;right:6px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(14,23,38,.72);color:#fff;letter-spacing:.3px}
 
 /* ===== 빈 상태 ===== */
 .empty{text-align:center;padding:60px 20px;color:var(--mute)}
@@ -540,19 +541,19 @@ function imageSearch(id,type){
   const hasKorean=/[가-힣]/.test(lib.modelName||'');
   const nameForSearch=hasKorean?(lib.modelNumber||lib.modelName):lib.modelName;
   const q=[gd,nameForSearch].filter(Boolean).join(' ');
-  const url='https://www.hlj.com/search/go?q='+encodeURIComponent(q);
+  const url='https://www.hlj.com/search/?q='+encodeURIComponent(q);
   window.open(url,'_blank','noopener');
   toast('HLJ에서 검색결과가 열려요. 상품 이미지 주소를 복사해 URL 첨부하세요');
 }
-// 구글 이미지 일본어 검색 (보조)
-function imageSearchGoogleJP(id,type){
+// 구글 이미지 일본어 검색 — 박스아트 키워드. 확실히 열림(Hobby Search는 Cloudflare 차단 리스크)
+function imageSearchBoxArt(id,type){
   const lib=resolveLib(id,type);
   if(!lib){toast('항목을 찾을 수 없어요');return}
   const gd=GRADE_DEFS[lib.grade]?GRADE_DEFS[lib.grade].label:'';
-  const q=[gd,lib.modelNumber,lib.modelName,'ガンプラ パッケージ'].filter(Boolean).join(' ');
+  const q=[gd,lib.modelNumber,lib.modelName,'ガンプラ 箱'].filter(Boolean).join(' ');
   const url='https://www.google.co.jp/search?tbm=isch&hl=ja&q='+encodeURIComponent(q);
   window.open(url,'_blank','noopener');
-  toast('구글(일본)에서 검색결과가 열려요');
+  toast('구글 이미지(일본)에서 박스아트를 찾아 주소를 복사·첨부하세요');
 }
 // 원클릭 박스아트 저장 — 이미 URL 보유한 항목(288종)을 복붙 없이 미디어로 편입
 async function saveBoxImage(libId){
@@ -674,6 +675,7 @@ function renderLibrary(){
       +'<div class="thumb">'
         +'<img src="'+ph+'" loading="lazy" data-bp="'+blueprintCard(l)+'" onerror="imgFallback(this)">'
         +'<div class="gbadge">'+esc(gd)+'</div>'
+        +(l.imageSource==='wiki'?'<div class="srcbadge">일러스트</div>':'')
         +(owned?'<div class="status st-done" title="보유중"></div>':'')
       +'</div>'
       +'<div class="body">'
@@ -709,7 +711,8 @@ function galleryHtml(ms,item){
   if(!ms.length){
     const bx=item?boxImageOf(item):'';
     const src=bx||blueprintCard(item||{});
-    return '<div class="detail-hero"><img src="'+src+'" data-bp="'+blueprintCard(item||{})+'" onerror="imgFallback(this)" style="object-fit:'+(bx?'contain':'cover')+'"></div>';
+    const isWiki=item&&item.imageSource==='wiki';
+    return '<div class="detail-hero"><img src="'+src+'" data-bp="'+blueprintCard(item||{})+'" onerror="imgFallback(this)" style="object-fit:'+(bx?'contain':'cover')+'">'+(isWiki?'<div class="srcbadge" style="bottom:10px;right:10px">애니 일러스트 · 박스아트 아님</div>':'')+'</div>';
   }
   const main=ms[0];
   let h='<div class="detail-hero"><img id="heroImg" src="'+main.dataUrl+'"></div>';
@@ -764,7 +767,7 @@ function renderCollectionDetail(c){
   }
   h+='<div class="searchrow2">';
   h+='<button class="savebtn sec half" onclick="imageSearch(\''+c.id+'\',\'C\')">🔍 HLJ 검색</button>';
-  h+='<button class="savebtn sec half" onclick="imageSearchGoogleJP(\''+c.id+'\',\'C\')">🇯🇵 구글JP</button>';
+  h+='<button class="savebtn sec half" onclick="imageSearchBoxArt(\''+c.id+'\',\'C\')">🇯🇵 구글 박스아트</button>';
   h+='</div>';
   h+='<button class="savebtn sec" onclick="openEdit(\''+c.id+'\')">✎ 기록 수정</button>';
   document.getElementById('detailBody').innerHTML=h;
@@ -809,7 +812,7 @@ function renderLibraryDetail(l){
   h+='<button class="savebtn'+(l.boxImage?' sec':'')+'" onclick="openAddFromLib(\''+l.id+'\')">+ 이 킷을 내 컬렉션에 추가</button>';
   h+='<div class="searchrow2">';
   h+='<button class="savebtn sec half" onclick="imageSearch(\''+l.id+'\',\'L\')">🔍 HLJ 검색</button>';
-  h+='<button class="savebtn sec half" onclick="imageSearchGoogleJP(\''+l.id+'\',\'L\')">🇯🇵 구글JP</button>';
+  h+='<button class="savebtn sec half" onclick="imageSearchBoxArt(\''+l.id+'\',\'L\')">🇯🇵 구글 박스아트</button>';
   h+='</div>';
   h+='<button class="savebtn sec" onclick="openLibEdit(\''+l.id+'\')">'+(l.isSeed?'📷 박스아트·사진 직접 첨부':'✎ 도서관 항목 수정')+'</button>';
   document.getElementById('detailBody').innerHTML=h;
