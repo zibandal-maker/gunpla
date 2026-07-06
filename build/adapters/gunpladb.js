@@ -28,16 +28,22 @@ async function acquire(){
   return JSON.parse(raw);
 }
 
-// 건프라 아닌 라인 제외
+// 건프라 아닌 라인 제외 (등급 기준)
 const EXCLUDE = new Set(['30MM','FAG']);
+// 건담 아닌 IP 제외 (이름 기준) — LBX(단무지) 등
+const EXCLUDE_NAME = /\bLBX\b|Danball|Little Battlers/i;
 
 // 표준 레코드로 변환 (normalize는 오케스트레이터가 적용)
 async function extract(){
   const rows = await acquire();
+  const BASE = 'https://gunpladb.com';
   const out = [];
   for(const k of rows){
     if(EXCLUDE.has(k.grade)) continue;
-    const img = (k.images||[]).find(u=>u && !u.includes('picsum')) || '';
+    if(EXCLUDE_NAME.test(k.name||'')) continue;
+    let img = (k.images||[]).find(u=>u && !u.includes('picsum')) || '';
+    // 상대경로 → 절대경로 (앱에서 로드 가능하게)
+    if(img && img.startsWith('/')) img = BASE + img;
     out.push({
       name: k.name,                      // 'RG 1/144 RX-78-2 Gundam'
       grade: k.grade,

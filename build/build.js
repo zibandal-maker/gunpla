@@ -5,6 +5,10 @@
 const fs = require('fs');
 const path = require('path');
 const { normalize, dedupKey, GRADES, SERIES } = require('./schema');
+const { enrich } = require('./enrich-images');
+
+// --enrich 플래그가 있을 때만 위키 이미지 보강 (API 호출 있으므로 선택적)
+const DO_ENRICH = process.argv.includes('--enrich');
 
 // 소스 우선순위 (뒤일수록 우선 = 덧입힘). korean-curated가 gunpladb 위에 정보 덮음.
 const ADAPTERS = [
@@ -52,6 +56,14 @@ async function run(){
   }
   const merged = [...map.values()];
   log('병합 후', merged.length, '종');
+
+  // 2.5) 이미지 보강 (--enrich 플래그 시): 위키 API로 빈 이미지 채움
+  if(DO_ENRICH){
+    log('위키 이미지 보강 시작 (--enrich)');
+    await enrich(merged);
+  }else{
+    log('이미지 보강 건너뜀 (활성화하려면: node build/build.js --enrich)');
+  }
 
   // 3) 정렬 (발매연도 내림차순) + ID 부여 (안정적 = 내용 해시 기반)
   merged.sort((a,b)=>(b.releaseYear||0)-(a.releaseYear||0));
