@@ -149,6 +149,14 @@ main{max-width:1080px;margin:0 auto;padding:18px}
 /* 사진 첨부 존 */
 .photozone{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;background:var(--panel2)}
 .photozone .kinds{display:flex;gap:7px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.photozone{outline:none}
+.pastebox{border:2px dashed var(--line);border-radius:12px;padding:18px 12px;text-align:center;cursor:pointer;margin-bottom:12px;transition:.15s;background:var(--panel2)}
+.pastebox:hover{border-color:var(--blue);background:var(--bluetint)}
+.pastebox.armed{border-color:var(--blue);border-style:solid;background:var(--bluetint);box-shadow:0 0 0 3px rgba(28,100,242,.12)}
+.pastebox .pasteicon{font-size:26px;margin-bottom:6px}
+.pastebox .pastemain{font-size:14px;font-weight:600;color:var(--ink)}
+.pastebox .pastemain b{color:var(--blue);font-family:var(--mono)}
+.pastebox .pastesub{font-size:11.5px;color:var(--mute);margin-top:3px}
 .kindbtn{font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink2)}
 .kindbtn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .photoacts{display:flex;gap:8px;justify-content:center}
@@ -176,8 +184,12 @@ main{max-width:1080px;margin:0 auto;padding:18px}
 .detail-hero .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-family:var(--mono)}
 .gallery{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
 .gallery::-webkit-scrollbar{height:4px}
-.gallery img{height:64px;width:64px;object-fit:cover;border-radius:9px;border:1px solid var(--line);cursor:pointer;flex-shrink:0}
+.gallery .gitem{position:relative;flex-shrink:0}
+.gallery img{height:64px;width:64px;object-fit:cover;border-radius:9px;border:1px solid var(--line);cursor:pointer;display:block}
 .gallery img.on{border-color:var(--blue);border-width:2px}
+.gallery .gdel{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;line-height:1;display:grid;place-items:center;box-shadow:0 1px 4px rgba(14,23,38,.3);border:1.5px solid #fff}
+.gallery .gdel:active{transform:scale(.9)}
+.gallery .gkind{position:absolute;bottom:2px;left:2px;right:2px;font-size:8px;font-weight:700;text-align:center;background:rgba(14,23,38,.7);color:#fff;padding:1px;border-radius:0 0 7px 7px}
 .spec{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
 .spec .row{display:flex;padding:11px 15px;border-bottom:1px solid var(--line2);font-size:14px}
 .spec .row:last-child{border-bottom:none}
@@ -716,16 +728,38 @@ function galleryHtml(ms,item){
   }
   const main=ms[0];
   let h='<div class="detail-hero"><img id="heroImg" src="'+main.dataUrl+'"></div>';
-  if(ms.length>1){
-    h+='<div class="gallery">'+ms.map((m,i)=>'<img src="'+m.dataUrl+'" class="'+(i===0?'on':'')+'" onclick="swapHero(this,\''+m.id+'\')" title="'+esc(m.kind)+'">').join('')+'</div>';
-  }
+  // 저장된 사진 관리 (썸네일 + 개별 삭제)
+  h+='<div class="gallery">'+ms.map((m,i)=>
+    '<div class="gitem"><img src="'+m.dataUrl+'" class="'+(i===0?'on':'')+'" onclick="swapHero(this,\''+m.id+'\')" title="'+esc(m.kind)+'">'
+    +'<button class="gdel" title="이 사진 삭제" onclick="event.stopPropagation();deleteStoredPhoto(\''+m.id+'\')">×</button>'
+    +'<span class="gkind">'+({box:'박스',manual:'매뉴얼',finished:'완성',wip:'작업'}[m.kind]||m.kind)+'</span></div>'
+  ).join('')+'</div>';
   return h;
 }
 function swapHero(el,mid){
   const m=MEDIA[mid]; if(!m)return;
   document.getElementById('heroImg').src=m.dataUrl;
-  el.parentElement.querySelectorAll('img').forEach(x=>x.classList.remove('on'));
+  el.closest('.gallery').querySelectorAll('img').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
+}
+// 저장된 사진 삭제 (상세 화면에서 바로)
+async function deleteStoredPhoto(mid){
+  if(!currentDetail)return;
+  if(!confirm('이 사진을 삭제할까요?'))return;
+  const rec=currentDetail.rec;
+  const store=currentDetail.type==='C'?'collection':'library';
+  // media 삭제
+  await DB.del('media',mid); delete MEDIA[mid];
+  // 항목의 mediaIds에서 제거
+  const updated={...rec, mediaIds:(rec.mediaIds||[]).filter(id=>id!==mid), updatedAt:now()};
+  await DB.put(store,updated);
+  await loadAll();
+  // 상세 갱신
+  const fresh=(store==='collection'?COL:LIB).find(x=>x.id===rec.id);
+  if(fresh){currentDetail.rec=fresh;
+    if(currentDetail.type==='C')renderCollectionDetail(fresh);
+    else renderLibraryDetail(fresh);}
+  toast('사진 삭제됨');
 }
 
 function tagChips(lib){
@@ -935,23 +969,80 @@ function renderEditForm(){
 /* ---------- 사진 존 ---------- */
 function photoZoneHtml(){
   return '<div class="field"><label>사진</label>'
-    +'<div class="photozone">'
+    +'<div class="photozone" id="photoZone" tabindex="0">'
       +'<div class="kinds" id="kindRow">'
         +[['box','박스아트'],['manual','매뉴얼'],['finished','완성샷'],['wip','작업중']].map(([k,v])=>
           '<button class="kindbtn'+(photoKind===k?' on':'')+'" onclick="setPhotoKind(\''+k+'\')">'+v+'</button>').join('')
       +'</div>'
+      +'<div class="pastebox" id="pasteBox" onclick="focusPaste()">'
+        +'<div class="pasteicon">📋</div>'
+        +'<div class="pastemain">여기를 누르고 <b>Ctrl+V</b> (붙여넣기)</div>'
+        +'<div class="pastesub">캡처·복사한 이미지를 바로 붙일 수 있어요</div>'
+      +'</div>'
       +'<div class="photoacts">'
-        +'<button onclick="document.getElementById(\'fileInput\').click()">📁 파일 선택</button>'
-        +'<button onclick="toggleUrlRow()">🔗 URL 붙여넣기</button>'
+        +'<button onclick="pasteFromClipboard()">📋 클립보드에서</button>'
+        +'<button onclick="document.getElementById(\'fileInput\').click()">📁 파일</button>'
+        +'<button onclick="toggleUrlRow()">🔗 URL</button>'
       +'</div>'
       +'<div class="urlrow" id="urlRow"><input id="urlInput" placeholder="이미지 URL (https://...)"><button onclick="addUrlPhoto()">추가</button></div>'
       +'<input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">'
     +'</div>'
     +'<div class="thumbs" id="pendingThumbs"></div>'
-    +'<div class="hint">완성샷·박스아트·매뉴얼·작업중 사진을 종류별로 붙일 수 있어요. URL은 인터넷 이미지 주소를 그대로 붙여넣으면 돼요.</div></div>';
+    +'<div class="hint">캡처한 이미지를 복사한 뒤 <b>붙여넣기 영역 클릭 → Ctrl+V</b>가 가장 빨라요. 파일 선택·URL 첨부도 가능합니다.</div></div>';
 }
 function setPhotoKind(k){photoKind=k;document.querySelectorAll('#kindRow .kindbtn').forEach(b=>b.classList.remove('on'));event.target.classList.add('on')}
 function toggleUrlRow(){document.getElementById('urlRow').classList.toggle('on')}
+
+// 붙여넣기 영역 포커스 + paste 이벤트 바인딩
+function focusPaste(){
+  const pz=document.getElementById('photoZone');
+  if(pz){pz.focus();document.getElementById('pasteBox').classList.add('armed');toast('이제 Ctrl+V 를 누르세요');}
+}
+// paste 이벤트 핸들러: 클립보드의 이미지 blob 추출
+async function onPasteImage(e){
+  if(!editState)return;
+  const items=(e.clipboardData||window.clipboardData)?.items;
+  if(!items)return;
+  let handled=false;
+  for(const it of items){
+    if(it.type&&it.type.startsWith('image/')){
+      const blob=it.getAsFile();
+      if(blob){
+        e.preventDefault();
+        const dataUrl=await resizeImage(blob);
+        editState.pendingMedia.push({id:uid('M'),kind:photoKind,dataUrl,isExternal:false,caption:'',createdAt:now()});
+        handled=true;
+      }
+    }
+  }
+  if(handled){renderPendingThumbs();toast('붙여넣기 완료');
+    const pb=document.getElementById('pasteBox');if(pb)pb.classList.remove('armed');}
+}
+// 버튼 방식: async clipboard API (secure context 필요)
+async function pasteFromClipboard(){
+  if(!navigator.clipboard||!navigator.clipboard.read){
+    toast('이 브라우저는 버튼 붙여넣기를 지원 안 해요. 영역 클릭 후 Ctrl+V 를 쓰세요');
+    focusPaste();return;
+  }
+  try{
+    const items=await navigator.clipboard.read();
+    let found=false;
+    for(const it of items){
+      const type=it.types.find(t=>t.startsWith('image/'));
+      if(type){
+        const blob=await it.getType(type);
+        const dataUrl=await resizeImage(blob);
+        editState.pendingMedia.push({id:uid('M'),kind:photoKind,dataUrl,isExternal:false,caption:'',createdAt:now()});
+        found=true;
+      }
+    }
+    if(found){renderPendingThumbs();toast('클립보드 이미지 추가됨');}
+    else toast('클립보드에 이미지가 없어요');
+  }catch(err){
+    toast('클립보드 접근 권한이 필요해요. 영역 클릭 후 Ctrl+V 를 쓰세요');
+    focusPaste();
+  }
+}
 
 async function handleFiles(files){
   for(const f of files){
@@ -1221,6 +1312,12 @@ async function init(){
     await ensureSeed();
     await loadAll();
     renderCollection();
+    // 전역 붙여넣기: 편집 시트가 열려있을 때만 이미지 처리
+    document.addEventListener('paste', e=>{
+      if(editState && document.getElementById('editOverlay').classList.contains('on')){
+        onPasteImage(e);
+      }
+    });
   }catch(e){
     console.error(e);
     document.getElementById('colGrid').innerHTML='<div class="empty"><b>저장소 초기화 실패</b><p>'+esc(e.message||String(e))+'</p></div>';
